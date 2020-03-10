@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+  eureka-server:
+    build: './EurekaServer'
+    ports:
+      - "8761:8761"
+    environment:
+      eureka.client.serviceUrl.defaultZone: http://eureka-server:8761/eureka
+  service-b:
+    build: './ServiceB'
+    ports:
+      - "8082:8082"
+    environment: 
+      eureka.instance.hostname: service-b
+      eureka.client.serviceUrl.defaultZone: http://eureka-server:8761/eureka
+      spring.data.mongodb.uri: mongodb://mongo-db:27017/project-school
+    depends_on:
+      - eureka-server
+      - mongo-db
+  service-a:
+    build: './ServiceA'
+    ports:
+      - "8081:8081"
+    environment: 
+      eureka.instance.hostname: service-a
+      eureka.client.serviceUrl.defaultZone: http://eureka-server:8761/eureka
+      spring.datasource.url: jdbc:postgresql://dbpgsql:5432/db_everis
+    depends_on:
+      - eureka-server
+      - dbpgsql
+  zuul-server:
+    build: './ZuulServer'
+    ports:
+      - "8090:8090"
+    environment:
+      eureka.instance.hostname: zuul-server
+      eureka.client.serviceUrl.defaultZone: http://eureka-server:8761/eureka
+    depends_on:
+      - eureka-server
+      - service-a
+      - service-b
+  dbpgsql:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=db_everis
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mquispeh
+    volumes:
+      - datapg:/var/lib/postgresql/data
+  mongo-db:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - datamg:/var/lib/mongodb/data
+volumes:
+    datapg:
+    datamg:
